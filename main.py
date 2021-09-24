@@ -1,23 +1,20 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QMainWindow
 from main_window_ui import Ui_MainWindow
+from login import LoginWindow
+
 
 class MainWindow(QMainWindow):
     def __init__(self, connection):
         super().__init__()
-        self.connection = connection
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.ui.pushButton.clicked.connect(self.handler)
-        self.show()
+        self.login_window = LoginWindow(self)
 
-    def handler(self):
-        print("i am here")
-        cursor = self.connection.cursor()
-        cursor.execute('SELECT * FROM room')
-        for row in cursor:
-            self.ui.test_label.setText(self.ui.test_label.text() + str(row))
-            # print(row)
+    def login_success(self, connection):
+        self.connection = connection
+        self.cursor = self.connection.cursor()
+        self.show()
 
 
 if __name__ == '__main__':
