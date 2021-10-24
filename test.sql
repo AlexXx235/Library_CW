@@ -1,0 +1,1 @@
+INSERT INTO names (name) VALUES ("Алекс"), ("Alex");
