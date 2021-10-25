@@ -16,6 +16,7 @@ class Ui_LoginForm(object):
         LoginForm.setObjectName("LoginForm")
         LoginForm.resize(320, 190)
         LoginForm.setMinimumSize(QtCore.QSize(320, 190))
+        LoginForm.setMaximumSize(QtCore.QSize(320, 190))
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(LoginForm)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.horizontalLayout = QtWidgets.QHBoxLayout()

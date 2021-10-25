@@ -40,13 +40,13 @@ class LoginWindow(QWidget):
             connection = connect(**config)
         except Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                QMessageBox.information(self, 'Access denied',
-                                        'Probably your login or password is incorrect.\nTry again.',
+                QMessageBox.information(self, 'Доступ запрещен',
+                                        'Неверный логин или пароль.',
                                         QMessageBox.Ok)
             elif err.errno == errorcode.CR_CONN_HOST_ERROR:
                 self.connection_blocked_msg()
             else:
-                QMessageBox.critical(self, 'Something went wrong', str(err), QMessageBox.Ok)
+                QMessageBox.critical(self, 'Упс! Что-то пошло не так', str(err), QMessageBox.Ok)
         else:
             self.connect.signal.emit(connection)
             self.close()
@@ -54,11 +54,12 @@ class LoginWindow(QWidget):
     def connection_blocked_msg(self):
         mb = QMessageBox(self)
         mb.setIcon(QMessageBox.Critical)
-        mb.setWindowTitle('Connection blocked')
-        mb.setText('Probably the server is not running or you are '
-                   'trying to connect incorrect host/port.')
-        settings_btn = mb.addButton('Settings', QMessageBox.ActionRole)
-        mb.addButton('Ok', QMessageBox.YesRole)
+        mb.setWindowTitle('Соединение не установлено')
+        mb.setText('Возможно, сервер не запущен или у вас'
+                   'установлен направильный адрес или порт. '
+                   'Вы можете исправить это в настройках')
+        settings_btn = mb.addButton('Настройки', QMessageBox.ActionRole)
+        mb.addButton('Ок', QMessageBox.YesRole)
         mb.exec_()
         if mb.clickedButton() == settings_btn:
             self.open_settings()

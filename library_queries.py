@@ -70,7 +70,8 @@ def filtered_book_search(cursor, title='', author='', room=''):
         FROM books
         WHERE title LIKE %s
         AND author LIKE %s
-        AND room_name LIKE %s;
+        AND room_name LIKE %s
+        ORDER BY room_name;
     '''
     cursor.execute(query, (title, author, room))
     return [book for book in cursor]
