@@ -1,7 +1,6 @@
 -- Create rooms (reading room) table
 CREATE TABLE IF NOT EXISTS rooms (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) PRIMARY KEY,
     capacity INT NOT NULL -- Each reading room have a limit of readers
 );
 
@@ -10,9 +9,9 @@ CREATE TABLE IF NOT EXISTS readers (
     card_number INT UNSIGNED PRIMARY KEY, -- Not bank card, but reading card
     surname VARCHAR(255) NOT NULL,
     phone_number VARCHAR(16) NOT NULL,
-    room_id INT NOT NULL,
+    room_name VARCHAR(255),
     -- Each reader is placed in one of the rooms
-    CONSTRAINT fk_reader_room_id FOREIGN KEY (room_id) REFERENCES rooms (id)
+    CONSTRAINT fk_reader_room_name FOREIGN KEY (room_name) REFERENCES rooms (name)
 );
 
 -- Create books table
@@ -21,9 +20,9 @@ CREATE TABLE IF NOT EXISTS books (
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255) NOT NULL,
     publish_year YEAR NOT NULL,
-    room_id INT NOT NULL,
+    room_name VARCHAR(255) NOT NULL,
     -- Each book is contained in some reading room
-    CONSTRAINT fk_book_room_id FOREIGN KEY (room_id) REFERENCES rooms (id)
+    CONSTRAINT fk_book_room_name FOREIGN KEY (room_name) REFERENCES rooms (name)
 );
 
 -- Create taking_log table which contains records about taking books

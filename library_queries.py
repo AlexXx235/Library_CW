@@ -9,8 +9,7 @@ def get_books_by_reader(cursor, card_number):
         );
     '''
     cursor.execute(query, (card_number, ))
-    books = [book for book in cursor]
-    return books
+    return [book for book in cursor]
 
 
 def get_books_by_author(cursor, author):
@@ -71,7 +70,7 @@ def filtered_book_search(cursor, title='', author='', room=''):
         FROM books
         WHERE title LIKE %s
         AND author LIKE %s
-        AND room_id LIKE %s;
+        AND room_name LIKE %s;
     '''
     cursor.execute(query, (title, author, room))
     return [book for book in cursor]

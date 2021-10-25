@@ -22,6 +22,7 @@ class MainWindow(QMainWindow):
     def initializeUI(self):
         self.ui.book_search_btn.clicked.connect(self.book_search)
         self.ui.cipher_le.textEdited.connect(self.control_filters)
+        self.ui.readers_book_search_btn.clicked.connect(self.readers_book_search)
         self.init_room_combo_box()
         self.show()
 
@@ -58,6 +59,20 @@ class MainWindow(QMainWindow):
             for book in books:
                 self.ui.test_label.setText(self.ui.test_label.text() + '\n' + str(book))
         # ----------
+
+    def readers_book_search(self):
+        # ------
+        self.ui.test_label.clear()
+        # ------
+        text = self.ui.card_number_le.text()
+        if text != '':
+            if text.isdigit():
+                card_number = int(text)
+                books = lq.get_books_by_reader(self.cursor, card_number)
+                # -------
+                for book in books:
+                    self.ui.test_label.setText(self.ui.test_label.text() + '\n' + str(book))
+                # -------
 
     def control_filters(self):
         if self.ui.cipher_le.text() == '':
