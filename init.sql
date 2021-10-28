@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS rooms (
 CREATE TABLE IF NOT EXISTS readers (
     card_number INT UNSIGNED PRIMARY KEY, -- Not bank card, but reading card
     surname VARCHAR(255) NOT NULL,
-    phone_number VARCHAR(16) NOT NULL,
+    phone_number VARCHAR(11) NOT NULL UNIQUE,
     room_name VARCHAR(255),
     -- Each reader is placed in one of the rooms
     CONSTRAINT fk_reader_room_name FOREIGN KEY (room_name) REFERENCES rooms (name)

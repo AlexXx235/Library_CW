@@ -31,6 +31,10 @@
   <property name="windowTitle">
    <string>Настройки соединения</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>images/icons/book.png</normaloff>images/icons/book.png</iconset>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QFormLayout" name="formLayout">

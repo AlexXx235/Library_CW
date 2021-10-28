@@ -25,6 +25,10 @@
   <property name="windowTitle">
    <string>Вход</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>images/icons/book.png</normaloff>images/icons/book.png</iconset>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">

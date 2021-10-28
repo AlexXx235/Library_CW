@@ -1,7 +1,7 @@
 import mysql
 from mysql.connector import connect, Error, errorcode
 from PyQt5.QtWidgets import (QWidget, QMessageBox)
-from PyQt5.QtCore import pyqtSignal, QObject, QSettings
+from PyQt5.QtCore import pyqtSignal, QObject, QSettings, Qt
 from login_form import Ui_LoginForm
 from settings import SettingsForm
 
@@ -22,6 +22,7 @@ class LoginWindow(QWidget):
         self.ui.login_btn.clicked.connect(self.connect_to_database)
         self.ui.settings_btn.clicked.connect(self.open_settings)
         self.connect = SuccessLogin()
+        self.ui.login_le.setFocus()
         self.show()
 
     def connect_to_database(self):
@@ -66,3 +67,7 @@ class LoginWindow(QWidget):
 
     def open_settings(self):
         self.settings_form = SettingsForm()
+
+    def keyPressEvent(self, key_event):
+        if key_event.key() == Qt.Key_Return:
+            self.ui.login_btn.clicked.emit()
