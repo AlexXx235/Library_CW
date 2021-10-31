@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>images/icons/book.png</normaloff>images/icons/book.png</iconset>
+    <normaloff>../../../Users/AlexX/.designer/backup/images/icons/book.png</normaloff>../../../Users/AlexX/.designer/backup/images/icons/book.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -148,7 +148,7 @@
             <height>16777215</height>
            </size>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,0,0,0,0,1,0,0,0,3">
+          <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,0,0,0,0,0,1,0,0,0,3">
            <item>
             <spacer name="verticalSpacer_4">
              <property name="orientation">
@@ -255,6 +255,18 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="availability_report_btn">
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>Отчет</string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_2">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -346,7 +358,7 @@
       </widget>
       <widget class="QWidget" name="readers_tab">
        <attribute name="title">
-        <string>Page</string>
+        <string>Читатели</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>

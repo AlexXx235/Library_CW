@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS readers (
     surname VARCHAR(255) NOT NULL,
     phone_number VARCHAR(11) NOT NULL UNIQUE,
     room_name VARCHAR(255),
+    registration_date DATE NOT NULL,
     -- Each reader is placed in one of the rooms
     CONSTRAINT fk_reader_room_name FOREIGN KEY (room_name) REFERENCES rooms (name)
 );

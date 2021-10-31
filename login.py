@@ -18,6 +18,7 @@ class LoginWindow(QWidget):
         self.initializeUI()
 
     def initializeUI(self):
+        self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
         self.settings = QSettings('MySoft', 'Library')
         self.ui.login_btn.clicked.connect(self.connect_to_database)
         self.ui.settings_btn.clicked.connect(self.open_settings)

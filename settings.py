@@ -1,6 +1,6 @@
 from settings_form import Ui_Form
 from PyQt5.QtWidgets import (QWidget)
-from PyQt5.QtCore import QSettings
+from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QIntValidator
 
 
@@ -12,6 +12,7 @@ class SettingsForm(QWidget):
         self.initializeUI()
 
     def initializeUI(self):
+        self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
         self.fill_edits()
         self.ui.save_btn.clicked.connect(self.save_settings)
         self.ui.cancel_btn.clicked.connect(self.close)

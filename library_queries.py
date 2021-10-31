@@ -1,4 +1,4 @@
-from mysql.connector import errorcode, Error
+any_room_text = 'Любой читальный зал'
 
 
 def get_books_by_reader(cursor, card_number):
@@ -64,8 +64,8 @@ def get_book_by_cipher(cursor, cipher):
 def filtered_book_search(cursor, title='', author='', room=''):
     title = '%' + title + '%'
     author = '%' + author + '%'
-    if room == '':
-        room = '%' + room + '%'
+    if room == any_room_text:
+        room = '%'
     query = '''
         SELECT *
         FROM books
@@ -114,8 +114,8 @@ def add_reader(cursor, reader):
     surname, phone_number, card_number, room_name = reader
     if if_room_have_place(cursor, room_name):
         query = '''
-            INSERT INTO readers (card_number, surname, phone_number, room_name)
-            VALUES (%s, %s, %s, %s);
+            INSERT INTO readers (card_number, surname, phone_number, room_name, registration_date)
+            VALUES (%s, %s, %s, %s, current_date());
         '''
         cursor.execute(query, (card_number, surname, phone_number, room_name))
 
@@ -179,10 +179,79 @@ def if_room_have_place(cursor, room):
     return size < capacity
 
 
-def readers_count(cursor):
+def current_readers_count(cursor):
+    query = '''
+            SELECT count(*)
+            FROM readers;
+        '''
+    cursor.execute(query)
+    return cursor.fetchone()[0]
+
+
+def readers_count(cursor, year, month):
     query = '''
         SELECT count(*)
+        FROM readers
+        WHERE registration_date <= LAST_DAY(DATE('%s-%s-01'));
+    '''
+    cursor.execute(query, (year, month))
+    return [row for row in cursor][0][0]
+
+
+def new_readers_for_month_count(cursor, year, month):
+    query = '''
+        SELECT count(*)
+        FROM readers
+        WHERE registration_date
+        BETWEEN '%(year)s-%(month)s-01'
+        AND LAST_DAY(DATE('%(year)s-%(month)s-01'));
+    '''
+    cursor.execute(query, {'year': year, 'month': month})
+    return [row for row in cursor][0][0]
+
+
+def books_taken_for_month(cursor, year, month):
+    query = '''
+      SELECT books.*, count(*)
+      FROM log, books
+      WHERE log.taking_date
+      BETWEEN '%(year)s-%(month)s-01'
+      AND LAST_DAY(DATE('%(year)s-%(month)s-01'))
+      AND log.book_cipher=books.cipher
+      GROUP BY book_cipher;  
+    '''
+    cursor.execute(query, {'year': year, 'month': month})
+    return [book for book in cursor]
+
+
+def inactive_readers_for_month(cursor, year, month):
+    query = '''
+        SELECT card_number, surname, phone_number, room_name
+        FROM readers
+        WHERE card_number NOT IN(
+            SELECT reader_card_number
+            FROM log
+            WHERE taking_date
+            BETWEEN '%(year)s-%(month)s-01'
+            AND LAST_DAY(DATE('%(year)s-%(month)s-01')))
+        AND registration_date <= LAST_DAY(DATE('%(year)s-%(month)s-01'));
+    '''
+    cursor.execute(query, {'year': year, 'month': month})
+    return [reader for reader in cursor]
+
+
+def get_current_year_and_month(cursor):
+    query = '''
+        SELECT YEAR(CURDATE()), MONTH(CURDATE());
+    '''
+    cursor.execute(query)
+    return cursor.fetchone()
+
+
+def get_first_year(cursor):
+    query = '''
+        SELECT MIN(YEAR(registration_date))
         FROM readers;
     '''
     cursor.execute(query)
-    return [row for row in cursor][0][0]
+    return cursor.fetchone()[0]
