@@ -1,4 +1,7 @@
+import sys
+
 import mysql
+import library_queries as lq
 from mysql.connector import connect, Error, errorcode
 from PyQt5.QtWidgets import (QWidget, QMessageBox)
 from PyQt5.QtCore import pyqtSignal, QObject, QSettings, Qt
@@ -7,7 +10,7 @@ from settings import SettingsForm
 
 
 class SuccessLogin(QObject):
-    signal = pyqtSignal(mysql.connector.connection.MySQLConnection)
+    signal = pyqtSignal(mysql.connector.connection.MySQLConnection, str)
 
 
 class LoginWindow(QWidget):
@@ -50,8 +53,16 @@ class LoginWindow(QWidget):
             else:
                 QMessageBox.critical(self, 'Упс! Что-то пошло не так', str(err), QMessageBox.Ok)
         else:
-            self.connect.signal.emit(connection)
-            self.close()
+            role = lq.get_role(connection.cursor())
+            print(role)
+            if role == '`admin_role`@`%`' or role == '`librarian`@`%`':
+                self.connect.signal.emit(connection, role)
+                self.close()
+            else:
+                QMessageBox.critical(self, 'Уходите',
+                                     'Вы не работник библиотеки, до свидания!',
+                                     QMessageBox.Ok)
+                sys.exit()
 
     def connection_blocked_msg(self):
         mb = QMessageBox(self)

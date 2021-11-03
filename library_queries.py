@@ -9,6 +9,15 @@ def commit(cursor):
     cursor.execute('COMMIT;')
 
 
+def rollback(cursor):
+    cursor.execute('ROLLBACK;')
+
+
+def get_role(cursor):
+    cursor.execute('SELECT CURRENT_ROLE();')
+    return cursor.fetchone()[0]
+
+
 def add_book(cursor, cipher, title, author):
     query = '''
         INSERT INTO books
@@ -69,8 +78,8 @@ def delete_book_copy(cursor, inv_number):
 def change_book_cipher(cursor, old_cipher, new_cipher):
     query = '''
         UPDATE books
-        SET cipher=%s
-        WHERE cipher=%s;
+        SET cipher = %s
+        WHERE cipher = %s;
     '''
     cursor.execute(query, (new_cipher, old_cipher))
 
@@ -142,24 +151,60 @@ def book_returning(cursor, inv_number):
     cursor.execute(query, (inv_number, ))
 
 
-def get_book_by_cipher(cursor, cipher):
+def get_book_by_cipher_and_room(cursor, cipher, room):
     query = '''
-        SELECT * FROM books WHERE cipher=%s; 
+        SELECT b.*, count(*)
+        FROM books b, book_copies bc
+        WHERE b.cipher = %s
+        AND b.cipher = bc.cipher
+        AND bc.room_name LIKE %s
+        GROUP BY bc.cipher; 
     '''
-    cursor.execute(query, (cipher, ))
-    return cursor.fetchone()
+    cursor.execute(query, (cipher, room))
+    return cursor.fetchall()
 
 
-def filtered_book_search(cursor, title='', author=''):
+def filtered_book_search(cursor, cipher='', title='', author='', room=''):
+    if room == any_room_text:
+        room = '%'
+    if cipher != '':
+        return get_book_by_cipher_and_room(cursor, cipher, room)
     title = '%' + title + '%'
     author = '%' + author + '%'
     query = '''
-        SELECT *
-        FROM books
-        WHERE title LIKE %s
-        AND author LIKE %s;
+        SELECT b.*, count(*)
+        FROM books b, book_copies bc
+        WHERE b.cipher = bc.cipher
+        AND b.title LIKE %s
+        AND b.author LIKE %s
+        AND bc.room_name LIKE %s
+        GROUP BY bc.cipher;
     '''
-    cursor.execute(query, (title, author))
+    cursor.execute(query, (title, author, room))
+    return cursor.fetchall()
+
+
+def filtered_available_book_search(cursor, cipher='', title='', author='', room=''):
+    if room == any_room_text:
+        room = '%'
+    if cipher != '':
+        return get_book_by_cipher_and_room(cursor, cipher, room)
+    title = '%' + title + '%'
+    author = '%' + author + '%'
+    query = '''
+        SELECT b.*, count(*)
+        FROM books b, book_copies bc
+        WHERE bc.inv_number NOT IN 
+            (SELECT book_copy_inv_number
+             FROM log
+             WHERE returning_date IS NULL) 
+        AND b.cipher = bc.cipher
+        AND b.title LIKE %s
+        AND b.author LIKE %s
+        AND bc.room_name LIKE %s
+        GROUP BY bc.cipher;
+    '''
+    cursor.execute(query, (title, author, room))
     return cursor.fetchall()
 
 
@@ -296,10 +341,29 @@ def get_current_year_and_month(cursor):
     return cursor.fetchone()
 
 
+def get_current_year(cursor):
+    query = '''
+        SELECT YEAR(CURDATE());
+    '''
+    cursor.execute(query)
+    return cursor.fetchone()[0]
+
+
 def get_first_year(cursor):
     query = '''
         SELECT MIN(YEAR(registration_date))
         FROM readers;
     '''
     cursor.execute(query)
+    return cursor.fetchone()[0]
+
+
+def cipher_exists(cursor, cipher):
+    query = '''
+        SELECT EXISTS 
+            (SELECT cipher
+             FROM books 
+             WHERE cipher = %s);
+    '''
+    cursor.execute(query, (cipher, ))
     return cursor.fetchone()[0]

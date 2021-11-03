@@ -50,8 +50,7 @@ class Report(SimpleDocTemplate):
                 'Шифр',
                 'Название',
                 'Автор',
-                'Год издания',
-                'Читальный зал'
+                'В наличии'
             ]
             data = [headers]
             data.extend(rows)

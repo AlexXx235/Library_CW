@@ -3,6 +3,7 @@ import os
 import library_queries as lq
 from get_date import GetDateForm
 from login import LoginWindow
+from add_book_copies import AddBookCopiesForm
 from main_form import Ui_MainWindow
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTableWidgetItem, QHeaderView, QInputDialog,
                              QMessageBox, QMenu, QAction, QFileDialog)
@@ -23,104 +24,98 @@ class MainWindow(QMainWindow):
         self.login_form = LoginWindow()
         self.login_form.connect.signal.connect(self.get_connection)
 
-    def initializeUI(self):
-        self.ui.book_search_btn.clicked.connect(self.book_search)
-        self.ui.cipher_le.textEdited.connect(self.control_filters)
-        self.ui.readers_book_search_btn.clicked.connect(self.readers_book_search)
-        self.ui.phone_search_btn.clicked.connect(self.reader_phone_search)
-        self.ui.add_reader_btn.clicked.connect(self.add_reader)
-        self.ui.availability_report_btn.clicked.connect(self.availability_note)
-
-        self.init_room_combo_box()
-        self.init_reader_room_combo_box()
-        self.configure_readers_table()
-        self.configure_books_table()
-        self.configure_rooms_table()
-        self.fill_rooms_table()
+    def initializeUI(self, role):
+        if role == '`librarian`@`%`':
+            self.ui.add_book_widget.hide()
+            self.ui.verticalLayout.removeItem(self.ui.verticalLayout.itemAt(3))
         self.set_validators()
-        self.ui.tabWidget.setCurrentIndex(0)
-        self.create_menu()
+        self.initialize_book_page()
+
         self.showMaximized()
 
-    def get_connection(self, connection):
+    def get_connection(self, connection, role):
+        print(role)
         self.connection = connection
         self.cursor = self.connection.cursor()
-        self.initializeUI()
+        self.initializeUI(role)
 
+    def create_menu(self):
+        menu_bar = self.menuBar()
+        reports_menu = menu_bar.addMenu('Отчеты')
+
+        month_report_act = QAction('Отчет за месяц', self)
+        month_report_act.setStatusTip('Отчет о работе библиотеки за текущий месяц')
+        month_report_act.triggered.connect(self.get_report_date)
+
+        reports_menu.addAction(month_report_act)
+
+    # Pages initialing
+    def initialize_book_page(self):
+        self.ui.availability_report_btn.clicked.connect(self.availability_note)
+        self.ui.search_book_cipher_le.textChanged.connect(self.control_filters)
+        self.ui.book_search_btn.clicked.connect(self.book_search)
+        self.ui.add_book_btn.clicked.connect(self.add_book)
+
+        self.init_room_combo_box(self.ui.search_book_room_combo_box)
+        self.configure_books_table()
+
+    # Common functions
     def set_validators(self):
+        # Validators
         phone_validator = QRegExpValidator(QRegExp('89[0-9]{9}'))
-        self.ui.phone_search_le.setValidator(phone_validator)
-        self.ui.phone_le.setValidator(phone_validator)
-
-        number_validator = QIntValidator(0, 2000000000)
-        self.ui.card_number_le.setValidator(number_validator)
-        self.ui.room_card_number_le.setValidator(number_validator)
-        self.ui.cipher_le.setValidator(number_validator)
-
+        number_validator = QIntValidator(0, 999999999)
         surname_validator = QRegExpValidator(QRegExp('[А-ЯA-Z][А-Яа-яA-Za-z]{1,100}'))
-        self.ui.surname_le.setValidator(surname_validator)
 
-    def init_room_combo_box(self):
+        # Book page
+        self.ui.search_book_cipher_le.setValidator(number_validator)
+        self.ui.add_book_cipher_le.setValidator(number_validator)
+
+        # Book copy page
+
+        # Reader page
+
+    def control_filters(self):
+        if self.ui.search_book_cipher_le.text() == '':
+            self.ui.search_book_author_le.setEnabled(True)
+            self.ui.search_book_title_le.setEnabled(True)
+        else:
+            self.ui.search_book_author_le.setEnabled(False)
+            self.ui.search_book_title_le.setEnabled(False)
+
+    def init_room_combo_box(self, combo_box):
         rooms = lq.get_rooms(self.cursor)
-        self.ui.room_combo_box.addItem(lq.any_room_text)
+        combo_box.addItem(lq.any_room_text)
         for room in rooms:
-            self.ui.room_combo_box.addItem(room)
+            combo_box.addItem(room)
 
+    # Book actions
     def book_search(self):
-        books = self.book_search_query()
-        self.fill_table_by_books(books)
+        books = self.available_book_search_query()
+        self.fill_books_table(books)
 
-    def get_search_query(self):
-        title = self.ui.title_le.text().strip().capitalize()
-        author = self.ui.author_le.text().strip().capitalize()
-        room = self.ui.room_combo_box.currentText()
-        return title, author, room
-
-    def book_search_query(self):
-        cipher = self.ui.cipher_le.text()
-        if cipher != '':
-            self.ui.query_label.setText(f'Книга с шифром: {cipher}')
-            return lq.get_book_by_cipher(self.cursor, cipher)
+    def add_book(self):
+        cipher, title, author = self.get_book_add_input()
+        if cipher == '' or title == '' or author == '':
+            QMessageBox.warning(self, 'Неправильный ввод',
+                                'Поля шифр, название и автор не должны быть пустыми!',
+                                QMessageBox.Ok)
+        elif lq.cipher_exists(self.cursor, cipher):
+            QMessageBox.critical(self, 'Попытка дублирования',
+                                 'Книга с таким шифром уже существует!',
+                                 QMessageBox.Ok)
         else:
-            title, author, room = self.get_search_query()
-            label_text = self.make_query_label(title, author, room)
-            self.set_query_label(label_text)
-            return lq.filtered_book_search(self.cursor, title=title,
-                                           author=author, room=room)
-
-    def set_query_label(self, label_text):
-        self.ui.query_label.setText(label_text)
-
-    def make_query_label(self, title, author, room):
-        if title == '' and author == '' and room == lq.any_room_text:
-            return 'Все книги'
-        else:
-            label_text = "Книги по запросу:"
-            if title != '':
-                label_text += f" Название = '{title}',"
-            if author != '':
-                label_text += f" Автор = '{author}',"
-            if room != '':
-                label_text += f" Читальный зал = '{room}'"
-            if label_text[-1] == ',':
-                label_text = label_text[:-1]
-            return label_text
-
-    def fill_table_by_books(self, books):
-        self.ui.books_table.clearContents()
-        self.ui.books_table.setRowCount(0)
-        if books:
-            if type(books[0][3]) is not int:
-                self.ui.books_table.setHorizontalHeaderItem(3,
-                                                            QTableWidgetItem('Взята'))
+            lq.start_transaction(self.cursor)
+            try:
+                lq.add_book(self.cursor, cipher, title, author)
+            except Error as err:
+                lq.rollback(self.cursor)
+                QMessageBox.critical(self, 'Упс! Что-то пошло не так',
+                                     err.msg,
+                                     QMessageBox.Ok)
             else:
-                self.ui.books_table.setHorizontalHeaderItem(3,
-                                                            QTableWidgetItem('Год издания'))
-            self.ui.books_table.setRowCount(len(books))
-            for row in range(len(books)):
-                for column in range(self.ui.books_table.columnCount()):
-                        item = QTableWidgetItem(str(books[row][column]))
-                        self.ui.books_table.setItem(row, column, item)
+                self.add_copies_form = AddBookCopiesForm(self.cursor)
+                self.add_copies_form.ui.cipher_le.setText(cipher)
+                self.add_copies_form.ui.cipher_le.setEnabled(False)
 
     def delete_book(self, row):
         cipher = self.ui.books_table.item(row, 0).text()
@@ -159,30 +154,85 @@ class MainWindow(QMainWindow):
                 else:
                     self.ui.books_table.item(row, column).setText(str(new_cipher))
 
-    def readers_book_search(self):
-        text = self.ui.card_number_le.text()
-        if text != '':
-            if text.isdigit():
-                self.ui.query_label.setText(f'Книги читателя с номером билета: {text}')
-                card_number = int(text)
-                books = lq.get_books_by_reader(self.cursor, card_number)
-                self.fill_table_by_books(books)
+    def get_book_search_query(self):
+        cipher = self.ui.search_book_cipher_le.text().strip()
+        title = self.ui.search_book_title_le.text().strip()
+        author = self.ui.search_book_author_le.text().strip()
+        room = self.ui.search_book_room_combo_box.currentText()
+        return cipher, title, author, room
 
-    def control_filters(self):
-        if self.ui.cipher_le.text() == '':
-            self.ui.author_le.setEnabled(True)
-            self.ui.title_le.setEnabled(True)
+    def get_book_add_input(self):
+        cipher = self.ui.add_book_cipher_le.text().strip()
+        title = self.ui.add_book_title_le.text().strip()
+        author = self.ui.add_book_author_le.text().strip()
+        return cipher, title, author
+
+    def available_book_search_query(self):
+        cipher, title, author, room = self.get_book_search_query()
+        label_text = self.make_query_label(cipher, title, author, room)
+        self.set_query_label(label_text)
+        return lq.filtered_available_book_search(self.cursor, cipher=cipher, title=title,
+                                       author=author, room=room)
+
+    def set_query_label(self, label_text):
+        self.ui.query_label.setText(label_text)
+
+    def make_query_label(self, cipher, title, author, room):
+        if cipher != '':
+            return f'Шифр: {cipher}, Читальный зал: {room}'
+        elif title == '' and author == '' and room == lq.any_room_text:
+            return 'Все книги'
         else:
-            self.ui.author_le.setEnabled(False)
-            self.ui.title_le.setEnabled(False)
+            label_text = "Книги по запросу:"
+            if title != '':
+                label_text += f" Название = '{title}',"
+            if author != '':
+                label_text += f" Автор = '{author}',"
+            if room != '':
+                label_text += f" Читальный зал = '{room}'"
+            if label_text[-1] == ',':
+                label_text = label_text[:-1]
+            return label_text
 
+    # Table filling
+    def fill_books_table(self, books):
+        self.ui.books_table.clearContents()
+        self.ui.books_table.setRowCount(0)
+        if books:
+            self.ui.books_table.setRowCount(len(books))
+            for row in range(len(books)):
+                for column in range(self.ui.books_table.columnCount()):
+                    item = QTableWidgetItem(str(books[row][column]))
+                    self.ui.books_table.setItem(row, column, item)
+
+    def fill_readers_table(self, reader):
+        self.ui.readers_table.clearContents()
+        if reader:
+            reader = reader[0]
+            for column in range(len(reader)):
+                item = QTableWidgetItem(str(reader[column]))
+                self.ui.readers_table.setItem(0, column, item)
+
+    def fill_rooms_table(self):
+        readers_count = lq.current_readers_count(self.cursor)
+        self.ui.info_text.setText(f'Количество читателей: {readers_count}')
+
+        self.ui.rooms_table.clearContents()
+        rows = lq.get_rooms_table(self.cursor)
+        if rows:
+            self.ui.rooms_table.setRowCount(len(rows))
+            for row in range(len(rows)):
+                for column in range(len(rows[0])):
+                    self.ui.rooms_table.setItem(row, column,
+                                                QTableWidgetItem(str(rows[row][column])))
+
+    # Tables initializing
     def configure_books_table(self):
         labels = [
             'Шифр',
             'Название',
             'Автор',
-            'Год издания',
-            'Читальный зал',
+            'В наличии'
         ]
         self.ui.books_table.setColumnCount(len(labels))
         self.ui.books_table.setHorizontalHeaderLabels(labels)
@@ -190,9 +240,32 @@ class MainWindow(QMainWindow):
         self.ui.books_table.cellDoubleClicked.connect(self.change_cipher)
 
         self.ui.books_table.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.ui.books_table.customContextMenuRequested.connect(self.table_context_menu)
+        self.ui.books_table.customContextMenuRequested.connect(self.books_table_context_menu)
 
-    def table_context_menu(self, pos):
+    def configure_readers_table(self):
+        labels = [
+            'Номер билета',
+            'Фамилия',
+            'Номер телефона',
+            'Читальный зал'
+        ]
+
+        self.ui.readers_table.setColumnCount(len(labels))
+        self.ui.readers_table.setRowCount(1)
+        self.ui.readers_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.ui.readers_table.setHorizontalHeaderLabels(labels)
+
+    def configure_rooms_table(self):
+        labels = [
+            'Читальный зал',
+            'Вместительность',
+            'Читателей'
+        ]
+        self.ui.rooms_table.setColumnCount(len(labels))
+        self.ui.rooms_table.setHorizontalHeaderLabels(labels)
+        self.ui.rooms_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+    def books_table_context_menu(self, pos):
         row = self.ui.books_table.currentRow()
         if 0 <= row < self.ui.books_table.rowCount():
             context_menu = QMenu()
@@ -207,108 +280,7 @@ class MainWindow(QMainWindow):
 
             context_menu.exec_(self.ui.books_table.viewport().mapToGlobal(pos))
 
-    def init_reader_room_combo_box(self):
-        rooms = lq.get_rooms(self.cursor)
-        for room in rooms:
-            self.ui.reader_room_combo_box.addItem(room)
-
-    def configure_readers_table(self):
-        labels = [
-            'Номер билета',
-            'Фамилия',
-            'Номер телефона',
-            'Читальный зал'
-        ]
-
-        self.ui.readers_table.setColumnCount(len(labels))
-        self.ui.readers_table.setRowCount(1)
-        self.ui.readers_table.setHorizontalHeaderLabels(labels)
-        self.ui.readers_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-    def configure_rooms_table(self):
-        labels = [
-            'Читальный зал',
-            'Вместительность',
-            'Читателей'
-        ]
-        self.ui.rooms_table.setColumnCount(len(labels))
-        self.ui.rooms_table.setHorizontalHeaderLabels(labels)
-        self.ui.rooms_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-    def reader_phone_search(self):
-        phone_number = self.ui.phone_search_le.text()
-        if len(phone_number) == 11:
-            reader = lq.get_reader_by_phone_number(self.cursor, phone_number)
-            self.fill_readers_table(reader)
-        else:
-            QMessageBox.warning(self, 'Неправильно набран номер',
-                                'Номер должен состоять из 11 цифр',
-                                QMessageBox.Ok)
-
-    def fill_readers_table(self, reader):
-        self.ui.readers_table.clearContents()
-        if reader:
-            reader = reader[0]
-            for column in range(len(reader)):
-                item = QTableWidgetItem(str(reader[column]))
-                self.ui.readers_table.setItem(0, column, item)
-
-    def add_reader(self):
-        surname = self.ui.surname_le.text()
-        phone_number = self.ui.phone_le.text()
-        card_number = self.ui.room_card_number_le.text()
-        room_name = self.ui.reader_room_combo_box.currentText()
-        if not surname:
-            QMessageBox.warning(self, 'Заполните поле!',
-                                'Поле "Фамилия" не может быть пустым!',
-                                QMessageBox.Ok)
-        elif not phone_number:
-            QMessageBox.warning(self, 'Заполните поле!',
-                                'Поле "Номер телефона" не может быть пустым!',
-                                QMessageBox.Ok)
-        elif not card_number:
-            QMessageBox.warning(self, 'Заполните поле!',
-                                'Поле "Номер читательского билета" не может быть пустым!',
-                                QMessageBox.Ok)
-        else:
-            try:
-                lq.add_reader(self.cursor, (surname, phone_number, card_number, room_name))
-            except Error as err:
-                if err.errno == errorcode.ER_DUP_ENTRY:
-                    QMessageBox.critical(self, 'Попытка дублирования!',
-                                         'Читатель с таким номером читательского билета'
-                                         ' или телефона уже зарегистрирован!',
-                                         QMessageBox.Ok)
-                else:
-                    QMessageBox.critical(self, 'Упс! Что-то пошло не так!',
-                                         f'{str(err)}',
-                                         QMessageBox.Ok)
-            else:
-                self.fill_rooms_table()
-
-    def fill_rooms_table(self):
-        readers_count = lq.current_readers_count(self.cursor)
-        self.ui.info_text.setText(f'Количество читателей: {readers_count}')
-
-        self.ui.rooms_table.clearContents()
-        rows = lq.get_rooms_table(self.cursor)
-        if rows:
-            self.ui.rooms_table.setRowCount(len(rows))
-            for row in range(len(rows)):
-                for column in range(len(rows[0])):
-                    self.ui.rooms_table.setItem(row, column,
-                                                QTableWidgetItem(str(rows[row][column])))
-                    
-    def create_menu(self):
-        menu_bar = self.menuBar()
-        reports_menu = menu_bar.addMenu('Отчеты')
-
-        month_report_act = QAction('Отчет за месяц', self)
-        month_report_act.setStatusTip('Отчет о работе библиотеки за текущий месяц')
-        month_report_act.triggered.connect(self.get_report_date)
-
-        reports_menu.addAction(month_report_act)
-
+    # Reports
     def get_report_date(self):
         cur_year, cur_month = lq.get_current_year_and_month(self.cursor)
         first_year = lq.get_first_year(self.cursor)
@@ -318,12 +290,12 @@ class MainWindow(QMainWindow):
         self.get_date_form.show()
 
     def availability_note(self):
-        books = self.book_search_query()
+        books = self.available_book_search_query()
         filename, ok = QFileDialog.getSaveFileName(self, 'Save report',
                                                    os.getcwd(), 'PDF (*.pdf)')
         if ok:
-            title, author, room = self.get_search_query()
-            query = self.make_query_label(title, author, room)
+            cipher, title, author, room = self.get_book_search_query()
+            query = self.make_query_label(cipher, title, author, room)
             availability_note = Report(filename)
             availability_note.availability_report_title(query)
             availability_note.available_books_table(books)
