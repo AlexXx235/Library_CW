@@ -2,7 +2,6 @@ import library_queries as lq
 from PyQt5.QtWidgets import (QWidget, QHeaderView, QComboBox, QLineEdit, QSpinBox,
                              QMessageBox)
 from PyQt5.QtGui import QIntValidator
-from PyQt5.QtCore import Qt
 from mysql.connector import Error, errorcode
 from add_book_copies_form import Ui_add_book_copies_form
 
@@ -18,7 +17,6 @@ class AddBookCopiesForm(QWidget):
     def initializeUI(self):
         self.rooms = lq.get_rooms(self.cursor)
         self.current_year = lq.get_current_year(self.cursor)
-
         self.configure_input_form()
         self.configure_copies_table()
         self.ui.add_btn.clicked.connect(self.add_copies)
@@ -26,10 +24,10 @@ class AddBookCopiesForm(QWidget):
 
     def configure_input_form(self):
         self.ui.cipher_le.setValidator(QIntValidator(0, 999999999))
-        self.ui.count_sb.valueChanged.connect(self.change_table_row_count)
         self.ui.count_sb.lineEdit().setEnabled(False)
         self.ui.count_sb.setMinimum(1)
         self.ui.count_sb.setMaximum(25)
+        self.ui.count_sb.valueChanged.connect(self.valueChanged_slot)
 
     def configure_copies_table(self):
         labels = [
@@ -40,23 +38,22 @@ class AddBookCopiesForm(QWidget):
         self.ui.copies_table.setColumnCount(len(labels))
         self.ui.copies_table.setHorizontalHeaderLabels(labels)
         self.ui.copies_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.ui.copies_table.setRowCount(0)
-        self.add_row_to_table()
 
-    def change_table_row_count(self):
+    def valueChanged_slot(self):
         value = self.ui.count_sb.value()
         rows_count = self.ui.copies_table.rowCount()
+        print(value, rows_count)
+        delta = abs(value - rows_count)
         if value > rows_count:
-            self.add_row_to_table()
-        else:
-            self.ui.copies_table.removeRow(rows_count - 1)
+            for _ in range(delta):
+                self.add_row_to_table()
+        elif value < rows_count:
+            for _ in range(delta):
+                self.ui.copies_table.removeRow(value)
 
-    def add_row_to_table(self):
+    def fill_row(self, row):
         combo_box = QComboBox()
         combo_box.addItems(self.rooms)
-
-        index = self.ui.copies_table.rowCount()
-        self.ui.copies_table.insertRow(index)
 
         inv_number_le = QLineEdit()
         inv_number_le.setFrame(False)
@@ -67,9 +64,17 @@ class AddBookCopiesForm(QWidget):
         release_year_sb.setRange(0, int(self.current_year))
         release_year_sb.setValue(int(self.current_year))
 
-        self.ui.copies_table.setCellWidget(index, 0, inv_number_le)
-        self.ui.copies_table.setCellWidget(index, 1, release_year_sb)
-        self.ui.copies_table.setCellWidget(index, 2, combo_box)
+        self.ui.copies_table.setCellWidget(row, 0, inv_number_le)
+        self.ui.copies_table.setCellWidget(row, 1, release_year_sb)
+        self.ui.copies_table.setCellWidget(row, 2, combo_box)
+
+    def add_row_to_table(self):
+        index = self.ui.copies_table.rowCount()
+        self.ui.copies_table.insertRow(index)
+        self.fill_row(index)
+
+    def set_row_count(self, count):
+        self.ui.count_sb.setValue(count)
 
     def add_copies(self):
         cipher = self.ui.cipher_le.text()

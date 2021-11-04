@@ -44,6 +44,16 @@ def get_count_of_book_copies(cursor, cipher):
     return cursor.fetchone()[0]
 
 
+def get_copy_cipher(cursor, inv_number):
+    query = '''
+        SELECT cipher
+        FROM book_copies
+        WHERE inv_number = %s;
+    '''
+    cursor.execute(query, (inv_number, ))
+    return cursor.fetchone()[0]
+
+
 def delete_book(cursor, cipher):
     query = '''
         DELETE 
@@ -105,7 +115,7 @@ def add_reader(cursor, reader):
     cursor.execute(query, (card_number,name, surname, phone_number, room_name))
 
 
-def get_books_by_reader(cursor, card_number):
+def get_book_copies_by_reader(cursor, card_number):
     query = '''
         WITH numbers AS
             (SELECT book_copy_inv_number AS num
@@ -122,7 +132,7 @@ def get_books_by_reader(cursor, card_number):
         AND bc.inv_number = pairs.inv_number;
     '''
     cursor.execute(query, (card_number, ))
-    return cursor.fecthall()
+    return cursor.fetchall()
 
 
 def delete_reader(cursor, card_number):
@@ -133,7 +143,7 @@ def delete_reader(cursor, card_number):
     cursor.execute(query, (card_number, ))
 
 
-def book_loaning(cursor, card_number, inv_number):
+def loan_book(cursor, card_number, inv_number):
     query = '''
         INSERT INTO log (reader_card_number, book_copy_inv_number, taking_date, returning_date)
         VALUES (%s, %s, CURDATE(), NULL);
@@ -141,7 +151,7 @@ def book_loaning(cursor, card_number, inv_number):
     cursor.execute(query, (card_number, inv_number))
 
 
-def book_returning(cursor, inv_number):
+def return_book(cursor, inv_number):
     query = '''
         UPDATE log
         SET returning_date = CURDATE()
@@ -218,17 +228,26 @@ def book_copy_search_by_inv_number(cursor, inv_number):
     return cursor.fetchone()
 
 
-def filtered_book_copy_search(cursor, cipher='%', year_from=0, year_till=-1, room_name='%'):
+def filtered_book_copy_search(cursor, cipher='', year_from=0, year_till=-1, room_name='%'):
+    if cipher == '':
+        cipher = '%'
     if year_till == -1:
         year_till = 'YEAR(CURDATE())'
+    if room_name == any_room_text:
+        room_name = '%'
     query = '''
-        SELECT *
-        FROM book_copies
-        WHERE cipher LIKE %s
-        AND release_year BETWEEN %s AND %s
+        SELECT bc.cipher, bc.inv_number, bc.release_year, bc.room_name, exists
+            (SELECT *
+             FROM log
+             WHERE book_copy_inv_number = bc.inv_number
+             AND returning_date IS NULL) AS loaned
+        FROM book_copies bc
+        WHERE bc.cipher LIKE %s
+        AND bc.release_year BETWEEN %s AND %s
         AND room_name LIKE %s;
     '''
     cursor.execute(query, (cipher, year_from, year_till, room_name))
+    return cursor.fetchall()
 
 
 def get_rooms(cursor):
@@ -366,4 +385,42 @@ def cipher_exists(cursor, cipher):
              WHERE cipher = %s);
     '''
     cursor.execute(query, (cipher, ))
+    return cursor.fetchone()[0]
+
+
+def reader_exists(cursor, card_number):
+    query = '''
+        SELECT EXISTS 
+            (SELECT card_number
+             FROM readers
+             WHERE card_number = %s);
+    '''
+    cursor.execute(query, (card_number, ))
+    return cursor.fetchone()[0]
+
+
+def copy_loaned(cursor, inv_number):
+    query = '''
+        SELECT EXISTS
+            (SELECT book_copy_inv_number
+             FROM log
+             WHERE book_copy_inv_number = %s
+             AND returning_date IS NULL);
+    '''
+    cursor.execute(query, (inv_number, ))
+    return cursor.fetchone()[0]
+
+
+def last_copy(cursor, inv_number):
+    query = '''
+        SELECT 
+            (SELECT count(*)
+             FROM book_copies
+             WHERE cipher =
+                (SELECT cipher
+                 FROM book_copies
+                 WHERE inv_number = %s)
+            ) = 1;
+    '''
+    cursor.execute(query, (inv_number, ))
     return cursor.fetchone()[0]

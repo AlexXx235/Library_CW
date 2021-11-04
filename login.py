@@ -54,7 +54,6 @@ class LoginWindow(QWidget):
                 QMessageBox.critical(self, 'Упс! Что-то пошло не так', str(err), QMessageBox.Ok)
         else:
             role = lq.get_role(connection.cursor())
-            print(role)
             if role == '`admin_role`@`%`' or role == '`librarian`@`%`':
                 self.connect.signal.emit(connection, role)
                 self.close()
