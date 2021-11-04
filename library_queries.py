@@ -106,27 +106,26 @@ def get_empty_slots_count_by_room(cursor, room_name):
     return cursor.fetchone()[0]
 
 
-def add_reader(cursor, reader):
-    card_number, name, surname, phone_number, room_name = reader
+def add_reader(cursor, card_number, name, surname, phone_number, room_name):
     query = '''
         INSERT INTO readers
-        VALUES(%s, %s, %s, %s, %s);
+        VALUES(%s, %s, %s, %s, %s, CURDATE());
     '''
-    cursor.execute(query, (card_number,name, surname, phone_number, room_name))
+    cursor.execute(query, (card_number, name, surname, phone_number, room_name))
 
 
 def get_book_copies_by_reader(cursor, card_number):
     query = '''
         WITH numbers AS
-            (SELECT book_copy_inv_number AS num
+            (SELECT book_copy_inv_number AS num, taking_date
              FROM log 
              WHERE reader_card_number = %s
              AND returning_date IS NULL),
              pairs AS
-            (SELECT bc.cipher, bc.inv_number
+            (SELECT bc.cipher, bc.inv_number, numbers.taking_date
              FROM book_copies bc, numbers
              WHERE bc.inv_number = numbers.num)
-        SELECT b.*, bc.inv_number, bc.room_name, bc.release_year
+        SELECT b.*, bc.inv_number, bc.room_name, bc.release_year, pairs.taking_date
         FROM books b, book_copies bc, pairs
         WHERE b.cipher = pairs.cipher
         AND bc.inv_number = pairs.inv_number;
@@ -360,6 +359,31 @@ def get_current_year_and_month(cursor):
     return cursor.fetchone()
 
 
+def filtered_readers_search(cursor, card_number, name, surname, phone_number, room_name):
+    if card_number == '':
+        card_number = '%'
+    name = '%' + name + '%'
+    surname = '%' + surname + '%'
+    if phone_number == '':
+        phone_number = '%'
+    if room_name == any_room_text:
+        room_name = '%'
+    query = '''
+        SELECT card_number,
+        CONCAT(surname, ' ', SUBSTRING(name, 1, 1), '.'),
+        phone_number,
+        room_name
+        FROM readers
+        WHERE card_number LIKE %s
+        AND name LIKE %s
+        AND surname LIKE %s
+        AND phone_number LIKE %s
+        AND room_name LIKE %s;
+    '''
+    cursor.execute(query, (card_number, name, surname, phone_number, room_name))
+    return cursor.fetchall()
+
+
 def get_current_year(cursor):
     query = '''
         SELECT YEAR(CURDATE());
@@ -423,4 +447,17 @@ def last_copy(cursor, inv_number):
             ) = 1;
     '''
     cursor.execute(query, (inv_number, ))
+    return cursor.fetchone()[0]
+
+
+def room_not_full(cursor, room_name):
+    query = '''
+        SELECT capacity >
+            (SELECT COUNT(*)
+             FROM readers
+             WHERE room_name = %s)
+        FROM rooms
+        WHERE name = %s;
+    '''
+    cursor.execute(query, (room_name, room_name))
     return cursor.fetchone()[0]

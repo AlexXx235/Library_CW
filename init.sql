@@ -44,12 +44,5 @@ CREATE TABLE IF NOT EXISTS log (
     reader_card_number INT UNSIGNED NOT NULL, -- who took
     book_copy_inv_number INT UNSIGNED NOT NULL, -- what took
     taking_date DATE NOT NULL, -- when took
-    returning_date DATE, -- when returned
-    -- References to reader and book
-    CONSTRAINT fk_reader_card_number
-        FOREIGN KEY (reader_card_number)
-            REFERENCES readers (card_number),
-    CONSTRAINT fk_book_cipher
-        FOREIGN KEY (book_copy_inv_number)
-            REFERENCES book_copies (inv_number)
+    returning_date DATE -- when returned
 );

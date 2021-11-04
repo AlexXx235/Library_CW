@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
         self.set_validators()
         self.initialize_book_page()
         self.initialize_copies_page()
+        self.initialize_readers_page()
 
         self.showMaximized()
 
@@ -71,12 +72,20 @@ class MainWindow(QMainWindow):
         self.configure_copies_table()
         self.configure_readers_copies_table()
 
+    def initialize_readers_page(self):
+        self.ui.add_reader_btn.clicked.connect(self.add_reader)
+        self.ui.search_readers_btn.clicked.connect(self.readers_search)
+        self.init_room_combo_box(self.ui.reader_room_combo_box)
+        self.configure_rooms_table()
+        self.configure_readers_table()
+        self.fill_rooms_table()
+
     # Common functions
     def set_validators(self):
         # Validators
         phone_validator = QRegExpValidator(QRegExp('89[0-9]{9}'))
         number_validator = QIntValidator(0, 999999999)
-        surname_validator = QRegExpValidator(QRegExp('[А-ЯA-Z][А-Яа-яA-Za-z]{1,100}'))
+        surname_validator = QRegExpValidator(QRegExp('[А-Яа-яA-Za-z]{1,128}'))
 
         # Book page
         self.ui.search_book_cipher_le.setValidator(number_validator)
@@ -94,7 +103,13 @@ class MainWindow(QMainWindow):
         self.ui.search_copies_till_year_sb.setMinimum(0)
         self.ui.search_copies_till_year_sb.setMaximum(current_year)
         self.ui.search_copies_till_year_sb.setValue(current_year)
+
         # Reader page
+        self.ui.reader_card_number_le.setValidator(number_validator)
+        self.ui.reader_copy_inv_number_le.setValidator(number_validator)
+        self.ui.reader_phone_number_le.setValidator(phone_validator)
+        self.ui.reader_name_le.setValidator(surname_validator)
+        self.ui.reader_surname_le.setValidator(surname_validator)
 
     def control_filters(self):
         if self.ui.search_book_cipher_le.text() == '':
@@ -188,9 +203,10 @@ class MainWindow(QMainWindow):
             if answer == QMessageBox.Ok:
                 lq.start_transaction(self.cursor)
                 try:
-                    lq.delete_book_copy(self.cursor, inv_number)
                     cipher = lq.get_copy_cipher(self.cursor, inv_number)
+                    lq.delete_book_copy(self.cursor, inv_number)
                     lq.delete_book(self.cursor, cipher)
+                    self.ui.copies_table.removeRow(row)
                 except Error as err:
                     lq.rollback(self.cursor)
                     QMessageBox.critical(self, 'Упс! Что-то пошло не так',
@@ -204,6 +220,7 @@ class MainWindow(QMainWindow):
             if answer == QMessageBox.Ok:
                 try:
                     lq.delete_book_copy(self.cursor, inv_number)
+                    self.ui.copies_table.removeRow(row)
                 except Error as err:
                     QMessageBox.critical(self, 'Упс! Что-то пошло не так',
                                          f'{err.msg}', QMessageBox.Ok)
@@ -254,6 +271,7 @@ class MainWindow(QMainWindow):
     def return_book(self, row):
         inv_number = self.ui.readers_copies_table.item(row, 3).text()
         lq.return_book(self.cursor, inv_number)
+        self.ui.readers_copies_table.removeRow(row)
 
     def get_book_search_query(self):
         cipher = self.ui.search_book_cipher_le.text().strip()
@@ -310,6 +328,58 @@ class MainWindow(QMainWindow):
                 label_text = label_text[:-1]
             return label_text
 
+    # Reader actions
+    def get_reader_query(self):
+        card_number = self.ui.reader_card_number_le.text()
+        name = self.ui.reader_name_le.text()
+        surname = self.ui.reader_surname_le.text()
+        phone_number = self.ui.reader_phone_number_le.text()
+        room_name = self.ui.reader_room_combo_box.currentText()
+        return card_number, name, surname, phone_number, room_name
+
+    def readers_search(self):
+        card_number, name, surname, phone_number, room_name = self.get_reader_query()
+        readers = lq.filtered_readers_search(self.cursor, card_number, name, surname, phone_number, room_name)
+        self.fill_readers_table(readers)
+        self.set_readers_query_label()
+
+    def set_readers_query_label(self):
+        card_number, name, surname, phone_number, room_name = self.get_reader_query()
+        if card_number + name + surname + phone_number + room_name == lq.any_room_text:
+            self.ui.readers_table_query.setText('Все читатели')
+        else:
+            query = 'Читатели по запросу:'
+            if card_number != '':
+                query += f' Номер билета: {card_number},'
+            if name != '':
+                query += f' Имя: {name},'
+            if surname != '':
+                query += f' Фамилия: {surname},'
+            if phone_number != '':
+                query += f' Номер телефона: {phone_number},'
+            query += f' Читальный зал: {room_name}'
+            self.ui.readers_table_query.setText(query)
+
+    def add_reader(self):
+        card_number, name, surname, phone_number, room_name = self.get_reader_query()
+        if room_name == lq.any_room_text:
+            QMessageBox.critical(self, 'Выберите зал',
+                                 'Для добавления пользователя нужно выбрать конкретный зал',
+                                 QMessageBox.Ok)
+        elif lq.room_not_full(self.cursor, room_name):
+            lq.add_reader(self.cursor, card_number, name, surname, phone_number, room_name)
+            self.fill_rooms_table()
+        else:
+            QMessageBox.critical(self, 'Нет места',
+                                 'Выбранный читальный зал полон.',
+                                 QMessageBox.Ok)
+
+    def delete_reader(self, row):
+        card_number = self.ui.readers_table.item(row, 0).text()
+        lq.delete_reader(self.cursor, card_number)
+        self.ui.readers_table.removeRow(row)
+        self.fill_rooms_table()
+
     # Table filling
     def fill_books_table(self, books):
         self.ui.books_table.clearContents()
@@ -321,26 +391,29 @@ class MainWindow(QMainWindow):
                     item = QTableWidgetItem(str(books[row][column]))
                     self.ui.books_table.setItem(row, column, item)
 
-    def fill_readers_table(self, reader):
+    def fill_readers_table(self, readers):
         self.ui.readers_table.clearContents()
-        if reader:
-            reader = reader[0]
-            for column in range(len(reader)):
-                item = QTableWidgetItem(str(reader[column]))
-                self.ui.readers_table.setItem(0, column, item)
+        rows_count = len(readers)
+        self.ui.readers_table.setRowCount(rows_count)
+        column_count = self.ui.readers_table.columnCount()
+        for row in range(rows_count):
+            for column in range(column_count):
+                item = QTableWidgetItem(str(readers[row][column]))
+                self.ui.readers_table.setItem(row, column, item)
 
     def fill_rooms_table(self):
         readers_count = lq.current_readers_count(self.cursor)
-        self.ui.info_text.setText(f'Количество читателей: {readers_count}')
+        self.ui.rooms_table_info.setText(f'Всего читателей: {readers_count}')
 
-        self.ui.rooms_table.clearContents()
+        self.ui.readers_statistics_table.clearContents()
         rows = lq.get_rooms_table(self.cursor)
-        if rows:
-            self.ui.rooms_table.setRowCount(len(rows))
-            for row in range(len(rows)):
-                for column in range(len(rows[0])):
-                    self.ui.rooms_table.setItem(row, column,
-                                                QTableWidgetItem(str(rows[row][column])))
+        rows_count = len(rows)
+        columns_count = self.ui.readers_statistics_table.columnCount()
+        self.ui.readers_statistics_table.setRowCount(rows_count)
+        for row in range(rows_count):
+            for column in range(columns_count):
+                item = QTableWidgetItem(str(rows[row][column]))
+                self.ui.readers_statistics_table.setItem(row, column, item)
 
     def fill_book_copies_table(self, copies):
         loaned_back_color = QColor()
@@ -403,7 +476,8 @@ class MainWindow(QMainWindow):
             'Автор',
             'Инв. Номер',
             'Год издания',
-            'Читальный зал'
+            'Читальный зал',
+            'Дата взятия'
         ]
         self.ui.readers_copies_table.setColumnCount(len(labels))
         self.ui.readers_copies_table.setHorizontalHeaderLabels(labels)
@@ -414,15 +488,15 @@ class MainWindow(QMainWindow):
     def configure_readers_table(self):
         labels = [
             'Номер билета',
-            'Фамилия',
+            'ФИО',
             'Номер телефона',
             'Читальный зал'
         ]
-
         self.ui.readers_table.setColumnCount(len(labels))
-        self.ui.readers_table.setRowCount(1)
         self.ui.readers_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.ui.readers_table.setHorizontalHeaderLabels(labels)
+        self.ui.readers_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.ui.readers_table.customContextMenuRequested.connect(self.readers_table_context_menu)
 
     def configure_rooms_table(self):
         labels = [
@@ -430,9 +504,9 @@ class MainWindow(QMainWindow):
             'Вместительность',
             'Читателей'
         ]
-        self.ui.rooms_table.setColumnCount(len(labels))
-        self.ui.rooms_table.setHorizontalHeaderLabels(labels)
-        self.ui.rooms_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.ui.readers_statistics_table.setColumnCount(len(labels))
+        self.ui.readers_statistics_table.setHorizontalHeaderLabels(labels)
+        self.ui.readers_statistics_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def books_table_context_menu(self, pos):
         row = self.ui.books_table.currentRow()
@@ -476,6 +550,18 @@ class MainWindow(QMainWindow):
                 context_menu.addAction(return_book_act)
 
             context_menu.exec_(self.ui.readers_copies_table.viewport().mapToGlobal(pos))
+
+    def readers_table_context_menu(self, pos):
+        row = self.ui.readers_table.currentRow()
+        if 0 <= row < self.ui.readers_table.rowCount():
+            context_menu = QMenu()
+            delete_reader_act = QAction('Удалить читателя')
+            delete_reader_act.triggered.connect(lambda: self.delete_reader(row))
+
+            if self.role == '`admin_role`@`%`':
+                context_menu.addAction(delete_reader_act)
+
+            context_menu.exec_(self.ui.readers_table.viewport().mapToGlobal(pos))
 
     # Reports
     def get_report_date(self):
