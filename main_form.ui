@@ -21,7 +21,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../../../Users/Users/AlexX/.designer/backup/images/icons/book.png</normaloff>../../../Users/Users/AlexX/.designer/backup/images/icons/book.png</iconset>
+    <normaloff>../../../Users/Users/Users/AlexX/.designer/backup/images/icons/book.png</normaloff>../../../Users/Users/Users/AlexX/.designer/backup/images/icons/book.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -1320,7 +1320,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QPushButton" name="copy_by_reader_search_btn">
+               <widget class="QPushButton" name="reader_by_copy_search_btn">
                 <property name="font">
                  <font>
                   <pointsize>11</pointsize>

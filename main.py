@@ -29,6 +29,7 @@ class MainWindow(QMainWindow):
         self.initialize_book_page()
         self.initialize_copies_page()
         self.initialize_readers_page()
+        self.create_menu()
 
         self.showMaximized()
 
@@ -75,6 +76,7 @@ class MainWindow(QMainWindow):
     def initialize_readers_page(self):
         self.ui.add_reader_btn.clicked.connect(self.add_reader)
         self.ui.search_readers_btn.clicked.connect(self.readers_search)
+        self.ui.reader_by_copy_search_btn.clicked.connect(self.reader_search_by_copy)
         self.init_room_combo_box(self.ui.reader_room_combo_box)
         self.configure_rooms_table()
         self.configure_readers_table()
@@ -380,6 +382,13 @@ class MainWindow(QMainWindow):
         self.ui.readers_table.removeRow(row)
         self.fill_rooms_table()
 
+    def reader_search_by_copy(self):
+        inv_number = self.ui.reader_copy_inv_number_le.text()
+        if inv_number != '':
+            reader = lq.get_reader_by_copy_number(self.cursor, inv_number)
+            self.fill_readers_table(reader)
+            self.ui.readers_table_query.setText(f'Читатель за которым закреплен экземпляр: {inv_number}')
+
     # Table filling
     def fill_books_table(self, books):
         self.ui.books_table.clearContents()
@@ -393,13 +402,15 @@ class MainWindow(QMainWindow):
 
     def fill_readers_table(self, readers):
         self.ui.readers_table.clearContents()
-        rows_count = len(readers)
-        self.ui.readers_table.setRowCount(rows_count)
-        column_count = self.ui.readers_table.columnCount()
-        for row in range(rows_count):
-            for column in range(column_count):
-                item = QTableWidgetItem(str(readers[row][column]))
-                self.ui.readers_table.setItem(row, column, item)
+        self.ui.readers_table.setRowCount(1)
+        if readers:
+            rows_count = len(readers)
+            self.ui.readers_table.setRowCount(rows_count)
+            column_count = self.ui.readers_table.columnCount()
+            for row in range(rows_count):
+                for column in range(column_count):
+                    item = QTableWidgetItem(str(readers[row][column]))
+                    self.ui.readers_table.setItem(row, column, item)
 
     def fill_rooms_table(self):
         readers_count = lq.current_readers_count(self.cursor)
@@ -490,7 +501,8 @@ class MainWindow(QMainWindow):
             'Номер билета',
             'ФИО',
             'Номер телефона',
-            'Читальный зал'
+            'Читальный зал',
+            'Дата регистрации'
         ]
         self.ui.readers_table.setColumnCount(len(labels))
         self.ui.readers_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)

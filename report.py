@@ -75,8 +75,6 @@ class Report(SimpleDocTemplate):
             'Шифр',
             'Название',
             'Автор',
-            'Год издания',
-            'Читальный зал',
             'Раз брали'
         ]
         data = [headers]
@@ -91,7 +89,7 @@ class Report(SimpleDocTemplate):
 
         headers = [
             'Номер билета',
-            'Фамилия',
+            'ФИО',
             'Номер телефона',
             'Читальный зал'
         ]

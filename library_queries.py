@@ -257,13 +257,21 @@ def get_rooms(cursor):
     return [row[0] for row in cursor]
 
 
-def get_reader_by_phone_number(cursor, phone_number):
+def get_reader_by_copy_number(cursor, inv_number):
     query = '''
-        SELECT *
+        SELECT card_number,
+        CONCAT(surname, ' ', SUBSTRING(name, 1, 1), '.'),
+        phone_number,
+        room_name,
+        registration_date
         FROM readers
-        WHERE phone_number = %s;
+        WHERE card_number =
+            (SELECT reader_card_number
+             FROM log
+             WHERE book_copy_inv_number = %s
+             AND returning_date IS NULL);
     '''
-    cursor.execute(query, (phone_number, ))
+    cursor.execute(query, (inv_number, ))
     return cursor.fetchall()
 
 
@@ -321,7 +329,7 @@ def books_taken_for_month(cursor, year, month):
     query = '''
         WITH numbers AS 
             (SELECT book_copy_inv_number AS num
-             FROM log where taking_date BETWEEN '%(year)s-%(month)s-01' AND LAST_DAY('%(year)s-%(month)s-01'),
+             FROM log where taking_date BETWEEN '%(year)s-%(month)s-01' AND LAST_DAY('%(year)s-%(month)s-01')),
              ciphers AS
             (SELECT cipher, count(*) as count
              FROM book_copies, numbers
@@ -332,12 +340,15 @@ def books_taken_for_month(cursor, year, month):
         WHERE b.cipher = ciphers.cipher;
     '''
     cursor.execute(query, {'year': year, 'month': month})
-    return [book for book in cursor]
+    return cursor.fetchall()
 
 
 def inactive_readers_for_month(cursor, year, month):
     query = '''
-        SELECT *
+        SELECT card_number,
+        CONCAT(surname, ' ', SUBSTRING(name, 1, 1), '.'),
+        phone_number,
+        room_name
         FROM readers
         WHERE card_number NOT IN(
             SELECT reader_card_number
@@ -372,7 +383,8 @@ def filtered_readers_search(cursor, card_number, name, surname, phone_number, ro
         SELECT card_number,
         CONCAT(surname, ' ', SUBSTRING(name, 1, 1), '.'),
         phone_number,
-        room_name
+        room_name,
+        registration_date
         FROM readers
         WHERE card_number LIKE %s
         AND name LIKE %s
