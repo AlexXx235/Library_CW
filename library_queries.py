@@ -473,3 +473,8 @@ def room_not_full(cursor, room_name):
     '''
     cursor.execute(query, (room_name, room_name))
     return cursor.fetchone()[0]
+
+
+def get_timestamp(cursor):
+    cursor.execute('SELECT CURRENT_TIMESTAMP();')
+    return cursor.fetchone()[0]

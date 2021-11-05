@@ -11,6 +11,7 @@ pdfmetrics.registerFont(TTFont('Times', 'Times.ttf'))
 
 title_style = ParagraphStyle('Title', fontSize=14, fontName='Times', alignment=1, spaceAfter=10*mm)
 info_style = ParagraphStyle('Info', fontSize=12, fontName='Times', spaceAfter=5*mm)
+timestamp_style = ParagraphStyle('Timestamp', fontSize=10, fontName='Times', spaceAfter=5*mm, spaceBefore=10*mm)
 table_title_style = ParagraphStyle('Table title', fontSize=10, fontName='Times',
                                    spaceBefore=10*mm, spaceAfter=3*mm)
 common_table_style = TableStyle([('FONT', (0, 0), (-1, -1), 'Times'),
@@ -22,6 +23,7 @@ class Report(SimpleDocTemplate):
     styles = {
         'Title': title_style,
         'Info': info_style,
+        'Timestamp': timestamp_style,
         'Table title': table_title_style
     }
 
@@ -98,6 +100,10 @@ class Report(SimpleDocTemplate):
         table = Table(data)
         table.setStyle(common_table_style)
         self.elements.append(table)
+
+    def set_timestamp(self, timestamp):
+        timestamp_p = Paragraph(f'Отчет создан: {timestamp}', Report.styles['Timestamp'])
+        self.elements.append(timestamp_p)
 
     def save(self):
         self.build(self.elements)

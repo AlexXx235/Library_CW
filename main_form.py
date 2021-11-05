@@ -651,7 +651,7 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -676,7 +676,7 @@ class Ui_MainWindow(object):
         self.search_book_author_le.setPlaceholderText(_translate("MainWindow", "Автор"))
         self.search_book_room_combo_box.setStatusTip(_translate("MainWindow", "Выберите читальный зал "))
         self.book_search_btn.setText(_translate("MainWindow", "Поиск"))
-        self.availability_report_btn.setText(_translate("MainWindow", "Отчет"))
+        self.availability_report_btn.setText(_translate("MainWindow", "Отчет о наличии"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.books_tab), _translate("MainWindow", "Книги"))
         self.copies_table_title.setText(_translate("MainWindow", "Экземпляры"))
         self.readers_copies_table_title.setText(_translate("MainWindow", "Экземпляры, закрепленные за читателем"))

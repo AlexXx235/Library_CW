@@ -594,6 +594,7 @@ class MainWindow(QMainWindow):
             availability_note = Report(filename)
             availability_note.availability_report_title(query)
             availability_note.available_books_table(books)
+            availability_note.set_timestamp(lq.get_timestamp(self.cursor))
             availability_note.save()
 
     def month_report(self, year, month):
@@ -601,12 +602,6 @@ class MainWindow(QMainWindow):
         new_readers_count = lq.new_readers_for_month_count(self.cursor, year, month)
         taken_books = lq.books_taken_for_month(self.cursor, year, month)
         inactive_readers = lq.inactive_readers_for_month(self.cursor, year, month)
-        print(readers_count)
-        print(new_readers_count)
-        for book in taken_books:
-            print(book)
-        for reader in inactive_readers:
-            print(reader)
         filename, ok = QFileDialog.getSaveFileName(self, 'Save report',
                                                    os.getcwd(), 'PDF (*.pdf)')
         if ok:
@@ -615,6 +610,7 @@ class MainWindow(QMainWindow):
             month_report.readers_count_info(readers_count, new_readers_count)
             month_report.books_table(taken_books)
             month_report.readers_table(inactive_readers)
+            month_report.set_timestamp(lq.get_timestamp(self.cursor))
             month_report.save()
 
 
