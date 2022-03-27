@@ -107,12 +107,3 @@ class Report(SimpleDocTemplate):
 
     def save(self):
         self.build(self.elements)
-
-
-if __name__ == '__main__':
-    report = Report('test.pdf')
-    report.month_report_title(2021, 9)
-    report.readers_count_info(6, 3)
-    report.books_table([[123, 'Пупа', 'Лупа', 2012, '№1', 2]])
-    report.readers_table([[1213, 'Алексеев', '89112463358', '№1']])
-    report.save()

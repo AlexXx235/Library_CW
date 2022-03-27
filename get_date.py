@@ -1,4 +1,4 @@
-from get_date_form import Ui_get_date_form
+from forms.get_date_form import Ui_get_date_form
 from PyQt5.QtWidgets import QWidget
 from PyQt5.QtCore import Qt, QObject, pyqtSignal
 
