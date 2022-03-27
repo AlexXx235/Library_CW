@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QHeaderView, QComboBox, QLineEdit, QSpinBo
                              QMessageBox)
 from PyQt5.QtGui import QIntValidator
 from mysql.connector import Error, errorcode
-from add_book_copies_form import Ui_add_book_copies_form
+from forms.add_book_copies_form import Ui_add_book_copies_form
 
 
 class AddBookCopiesForm(QWidget):

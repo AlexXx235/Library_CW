@@ -4,11 +4,11 @@ import library_queries as lq
 from get_date import GetDateForm
 from login import LoginWindow
 from add_book_copies import AddBookCopiesForm
-from main_form import Ui_MainWindow
+from forms.main_form import Ui_MainWindow
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QTableWidgetItem, QHeaderView, QInputDialog,
                              QMessageBox, QMenu, QAction, QFileDialog)
 from PyQt5.QtCore import Qt, QRegExp
-from PyQt5.QtGui import QRegExpValidator, QIntValidator, QColor, QBrush
+from PyQt5.QtGui import QRegExpValidator, QIntValidator, QColor, QBrush, QIcon
 from report import Report
 from mysql.connector import Error, errorcode
 
@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
         self.login_form.connect.signal.connect(self.get_connection)
 
     def initializeUI(self):
+        self.setWindowIcon(QIcon('images/icons/book.png'))
         self.set_validators()
         self.initialize_book_page()
         self.initialize_copies_page()
@@ -364,6 +365,10 @@ class MainWindow(QMainWindow):
 
     def add_reader(self):
         card_number, name, surname, phone_number, room_name = self.get_reader_query()
+        if card_number == '' or name =='' or surname == '' or phone_number == '':
+            QMessageBox.warning(self, 'Некорректный ввод',
+                                      'Необходимо заполнить все поля',
+                                      QMessageBox.Ok)
         if room_name == lq.any_room_text:
             QMessageBox.critical(self, 'Выберите зал',
                                  'Для добавления пользователя нужно выбрать конкретный зал',

@@ -1,4 +1,4 @@
-from settings_form import Ui_Form
+from forms.settings_form import Ui_Form
 from PyQt5.QtWidgets import (QWidget)
 from PyQt5.QtCore import QSettings, Qt
 from PyQt5.QtGui import QIntValidator

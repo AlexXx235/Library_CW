@@ -5,7 +5,7 @@ import library_queries as lq
 from mysql.connector import connect, Error, errorcode
 from PyQt5.QtWidgets import (QWidget, QMessageBox)
 from PyQt5.QtCore import pyqtSignal, QObject, QSettings, Qt
-from login_form import Ui_LoginForm
+from forms.login_form import Ui_LoginForm
 from settings import SettingsForm
 
 
